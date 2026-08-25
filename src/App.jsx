@@ -2,37 +2,45 @@ import { useState } from 'react';
 import RoomsPanel from './components/RoomsPanel';
 import ReservationsPanel from './components/ReservationsPanel';
 import PaymentsPanel from './components/PaymentsPanel';
-import { API_BASE_URL } from './api';
 import './App.css';
 
-const TABS = {
-    rooms: RoomsPanel,
-    reservations: ReservationsPanel,
-    payments: PaymentsPanel,
-};
+const TABS = [
+  { key: 'rooms', label: 'Rooms', Panel: RoomsPanel },
+  { key: 'reservations', label: 'Bookings', Panel: ReservationsPanel },
+  { key: 'payments', label: 'Payments', Panel: PaymentsPanel },
+];
 
 export default function App() {
-    const [tab, setTab] = useState('rooms');
-    const ActivePanel = TABS[tab];
+  const [tab, setTab] = useState('rooms');
+  const active = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const ActivePanel = active.Panel;
 
-    return (
-        <div className="app">
-            <header>
-                <h1>Hotel Booking — Microservices Demo</h1>
-                <p className="api-base">API Gateway: <code>{API_BASE_URL}</code></p>
-            </header>
+  return (
+    <div className="app">
+      <header className="hero">
+        <p className="eyebrow">Hospitality made simple</p>
+        <h1 className="brand">StayCloud</h1>
+        <p className="tagline">
+          Find the right room, reserve with confidence, and settle your stay in a few calm steps.
+        </p>
+      </header>
 
-            <nav>
-                {Object.keys(TABS).map((key) => (
-                    <button key={key} className={key === tab ? 'active' : ''} onClick={() => setTab(key)}>
-                        {key}
-                    </button>
-                ))}
-            </nav>
+      <nav className="tabs" aria-label="Main">
+        {TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={key === tab ? 'active' : ''}
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
-            <main>
-                <ActivePanel />
-            </main>
-        </div>
-    );
+      <main>
+        <ActivePanel />
+      </main>
+    </div>
+  );
 }
