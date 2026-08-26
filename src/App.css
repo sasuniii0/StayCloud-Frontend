@@ -406,6 +406,20 @@ tbody tr:hover {
   background: var(--mist);
 }
 
+.form-thumb {
+  display: block;
+  margin-top: 0.45rem;
+  width: 72px;
+  height: 72px;
+}
+
+.field input[type='file'] {
+  padding: 0.35rem 0;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
 .file-btn {
   display: inline-flex;
   align-items: center;

@@ -23,6 +23,9 @@ function money(n) {
 export default function RoomsPanel() {
   const [rooms, setRooms] = useState([]);
   const [form, setForm] = useState(emptyForm);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,21 +40,51 @@ export default function RoomsPanel() {
 
   useEffect(load, []);
 
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return '';
+    });
+    setFileInputKey((k) => k + 1);
+  };
+
+  const onPickImage = (file) => {
+    if (!file) {
+      clearImage();
+      return;
+    }
+    setImageFile(file);
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!imageFile) {
+      setError('Please choose a room picture before saving.');
+      return;
+    }
     setSaving(true);
     try {
-      await createRoom({
+      const created = await createRoom({
         roomNumber: form.roomNumber,
         type: form.type,
         description: form.description,
         pricePerNight: Number(form.pricePerNight),
       });
+      if (!created?.id) {
+        throw new Error('Room was created but no id was returned for image upload.');
+      }
+      await uploadRoomImage(created.id, imageFile);
       setForm(emptyForm);
+      clearImage();
       load();
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -61,8 +94,8 @@ export default function RoomsPanel() {
     try {
       await setRoomAvailability(room.id, !room.available);
       load();
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -70,18 +103,18 @@ export default function RoomsPanel() {
     try {
       await deleteRoom(id);
       load();
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
-  const onUpload = async (room, file) => {
+  const onChangePhoto = async (room, file) => {
     if (!file) return;
     try {
       await uploadRoomImage(room.id, file);
       load();
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -90,11 +123,15 @@ export default function RoomsPanel() {
       <div className="panel-head">
         <div>
           <h2>Rooms</h2>
-          <p>Add rooms, set availability, and upload photos to cloud storage.</p>
+          <p>Add a room with its picture in one step. Photos are stored in cloud storage.</p>
         </div>
       </div>
 
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="form-shell">
         <h3>Add room</h3>
@@ -139,6 +176,21 @@ export default function RoomsPanel() {
               onChange={(e) => setForm({ ...form, pricePerNight: e.target.value })}
             />
           </label>
+          <label className="field field-wide">
+            <span>Room picture</span>
+            <input
+              key={fileInputKey}
+              required
+              type="file"
+              accept="image/*"
+              onChange={(e) => onPickImage(e.target.files?.[0])}
+            />
+            {imagePreview ? (
+              <img className="thumb form-thumb" src={imagePreview} alt="Selected room" />
+            ) : (
+              <span className="subtle">Choose an image — it uploads when you save</span>
+            )}
+          </label>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Saving…' : 'Add room'}
           </button>
@@ -150,7 +202,7 @@ export default function RoomsPanel() {
       ) : rooms.length === 0 ? (
         <div className="empty">
           <strong>No rooms yet</strong>
-          <p>Add your first room to start taking bookings.</p>
+          <p>Add your first room (with a picture) to start taking bookings.</p>
         </div>
       ) : (
         <div className="table-wrap">
@@ -192,11 +244,11 @@ export default function RoomsPanel() {
                       <span className="subtle">No photo</span>
                     )}
                     <label className="file-btn" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      Upload
+                      Change
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => onUpload(room, e.target.files?.[0])}
+                        onChange={(e) => onChangePhoto(room, e.target.files?.[0])}
                       />
                     </label>
                   </td>
