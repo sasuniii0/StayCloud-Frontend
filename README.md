@@ -1,10 +1,6 @@
 # Hotel Booking — Frontend
 
-> **Student Name:** \<Your Full Name\>
-> **Student Number:** \<Your Student Number\>
-> **Slack Handle:** \<optional\>
-> **GCP Project ID:** \<your-gcp-project-id\>
-> **Live URL:** \<deployed public URL — also put this in the GitHub repo's "About" description\>
+> **Student Name:** Sasuni Wijerathne
 
 ## Project Description
 
