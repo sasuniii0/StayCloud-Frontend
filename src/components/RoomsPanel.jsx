@@ -1,5 +1,12 @@
-import { useEffect, useState } from 'react';
-import { createRoom, deleteRoom, getRooms, setRoomAvailability, uploadRoomImage } from '../api';
+import { useEffect, useRef, useState } from 'react';
+import {
+  API_BASE_URL,
+  createRoom,
+  deleteRoom,
+  getRooms,
+  setRoomAvailability,
+  uploadRoomImage,
+} from '../api';
 
 const emptyForm = {
   roomNumber: '',
@@ -17,7 +24,17 @@ const TYPE_LABEL = {
 };
 
 function money(n) {
-  return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+  }).format(Number(n) || 0);
+}
+
+/** Photos are private in GCS — load them through the API gateway. */
+function photoUrl(room) {
+  if (!room?.id || !room.imageUrls?.length) return '';
+  const stamp = encodeURIComponent(String(room.imageUrls[0]));
+  return `${API_BASE_URL}/api/rooms/${room.id}/photo?v=${stamp}`;
 }
 
 export default function RoomsPanel() {
@@ -29,6 +46,7 @@ export default function RoomsPanel() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef(null);
 
   const load = () => {
     setLoading(true);
@@ -54,6 +72,11 @@ export default function RoomsPanel() {
       clearImage();
       return;
     }
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file.');
+      return;
+    }
+    setError('');
     setImageFile(file);
     setImagePreview((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -65,7 +88,7 @@ export default function RoomsPanel() {
     e.preventDefault();
     setError('');
     if (!imageFile) {
-      setError('Please choose a room picture before saving.');
+      setError('Choose a room photo before saving.');
       return;
     }
     setSaving(true);
@@ -77,7 +100,7 @@ export default function RoomsPanel() {
         pricePerNight: Number(form.pricePerNight),
       });
       if (!created?.id) {
-        throw new Error('Room was created but no id was returned for image upload.');
+        throw new Error('Room saved but no id returned for photo upload.');
       }
       await uploadRoomImage(created.id, imageFile);
       setForm(emptyForm);
@@ -108,7 +131,7 @@ export default function RoomsPanel() {
     }
   };
 
-  const onChangePhoto = async (room, file) => {
+  const changePhoto = async (room, file) => {
     if (!file) return;
     try {
       await uploadRoomImage(room.id, file);
@@ -121,10 +144,7 @@ export default function RoomsPanel() {
   return (
     <section className="panel">
       <div className="panel-head">
-        <div>
-          <h2>Rooms</h2>
-          <p>Add a room with its picture in one step. Photos are stored in cloud storage.</p>
-        </div>
+        <h2>Rooms</h2>
       </div>
 
       {error && (
@@ -176,21 +196,63 @@ export default function RoomsPanel() {
               onChange={(e) => setForm({ ...form, pricePerNight: e.target.value })}
             />
           </label>
-          <label className="field field-wide">
-            <span>Room picture</span>
-            <input
-              key={fileInputKey}
-              required
-              type="file"
-              accept="image/*"
-              onChange={(e) => onPickImage(e.target.files?.[0])}
-            />
-            {imagePreview ? (
-              <img className="thumb form-thumb" src={imagePreview} alt="Selected room" />
-            ) : (
-              <span className="subtle">Choose an image — it uploads when you save</span>
+
+          <div className="field field-wide">
+            <span>Photo</span>
+            <div
+              className={`photo-drop${imagePreview ? ' has-image' : ''}`}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                onPickImage(e.dataTransfer.files?.[0]);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fileRef.current?.click();
+                }
+              }}
+            >
+              <input
+                key={fileInputKey}
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => onPickImage(e.target.files?.[0])}
+              />
+              {imagePreview ? (
+                <>
+                  <img src={imagePreview} alt="Selected room" />
+                  <div className="photo-drop-meta">
+                    <strong>{imageFile?.name}</strong>
+                    <span>Click or drop to replace</span>
+                  </div>
+                </>
+              ) : (
+                <div className="photo-drop-meta">
+                  <strong>Add room photo</strong>
+                  <span>Click or drag an image here</span>
+                </div>
+              )}
+            </div>
+            {imagePreview && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost photo-clear"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  clearImage();
+                }}
+              >
+                Remove photo
+              </button>
             )}
-          </label>
+          </div>
+
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? 'Saving…' : 'Add room'}
           </button>
@@ -202,63 +264,72 @@ export default function RoomsPanel() {
       ) : rooms.length === 0 ? (
         <div className="empty">
           <strong>No rooms yet</strong>
-          <p>Add your first room (with a picture) to start taking bookings.</p>
+          <p>Add a room to start taking bookings.</p>
         </div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
+                <th>Photo</th>
                 <th>Room</th>
                 <th>Category</th>
                 <th>Rate</th>
                 <th>Availability</th>
-                <th>Photo</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {rooms.map((room) => (
-                <tr key={room.id}>
-                  <td>
-                    <div className="cell-stack">
-                      <strong>#{room.roomNumber}</strong>
-                      <span className="subtle">{room.description}</span>
-                    </div>
-                  </td>
-                  <td>{TYPE_LABEL[room.type] || room.type}</td>
-                  <td className="money">{money(room.pricePerNight)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${room.available ? 'btn-ghost' : 'btn-danger'}`}
-                      onClick={() => toggleAvailability(room)}
-                    >
-                      {room.available ? 'Available' : 'Unavailable'}
-                    </button>
-                  </td>
-                  <td>
-                    {room.imageUrls?.[0] ? (
-                      <img className="thumb" src={room.imageUrls[0]} alt={`Room ${room.roomNumber}`} />
-                    ) : (
-                      <span className="subtle">No photo</span>
-                    )}
-                    <label className="file-btn" style={{ display: 'block', marginTop: '0.35rem' }}>
-                      Change
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => onChangePhoto(room, e.target.files?.[0])}
-                      />
-                    </label>
-                  </td>
-                  <td>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => remove(room.id)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rooms.map((room) => {
+                const photo = photoUrl(room);
+                return (
+                  <tr key={room.id}>
+                    <td>
+                      <div className="photo-cell">
+                        {photo ? (
+                          <img className="thumb-lg" src={photo} alt={`Room ${room.roomNumber}`} />
+                        ) : (
+                          <div className="thumb-lg thumb-empty">No photo</div>
+                        )}
+                        <label className="file-btn">
+                          {photo ? 'Change' : 'Add'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => changePhoto(room, e.target.files?.[0])}
+                          />
+                        </label>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cell-stack">
+                        <strong>#{room.roomNumber}</strong>
+                        <span className="subtle">{room.description}</span>
+                      </div>
+                    </td>
+                    <td>{TYPE_LABEL[room.type] || room.type}</td>
+                    <td className="money">{money(room.pricePerNight)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${room.available ? 'btn-ghost' : 'btn-danger'}`}
+                        onClick={() => toggleAvailability(room)}
+                      >
+                        {room.available ? 'Available' : 'Unavailable'}
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={() => remove(room.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

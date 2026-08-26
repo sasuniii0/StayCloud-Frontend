@@ -17,7 +17,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="hero">
+      <header className="topbar">
         <h1 className="brand">StayCloud</h1>
       </header>
 

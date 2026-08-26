@@ -44,3 +44,4 @@ export const createPayment = (payload) =>
   request('/api/payments', { method: 'POST', body: JSON.stringify(payload) });
 
 export { API_BASE_URL };
+export default API_BASE_URL;
