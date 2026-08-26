@@ -12,8 +12,8 @@
   --ok: #1b7a4a;
   --shadow: 0 18px 40px rgba(16, 32, 40, 0.08);
   --radius: 14px;
-  --font-display: "Syne", sans-serif;
   --font-body: "Figtree", sans-serif;
+  --font-display: var(--font-body);
   --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 

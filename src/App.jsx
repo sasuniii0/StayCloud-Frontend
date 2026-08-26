@@ -18,11 +18,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="hero">
-        <p className="eyebrow">Hospitality made simple</p>
         <h1 className="brand">StayCloud</h1>
-        <p className="tagline">
-          Find the right room, reserve with confidence, and settle your stay in a few calm steps.
-        </p>
       </header>
 
       <nav className="tabs" aria-label="Main">
