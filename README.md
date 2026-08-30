@@ -1,6 +1,14 @@
 # Hotel Booking — Frontend
 
+<<<<<<< HEAD
 > **Student Name:** Sasuni Wijerathne
+=======
+> **Student Name:** _[fill in before submission]_
+> **Student Number:** _[fill in before submission]_
+> **Slack Handle:** _[optional]_
+> **GCP Project ID:** `staycloud`
+> **Live URL:** http://34.14.183.114 (also https://staycloud-frontend-5hygiw3kyq-el.a.run.app)
+>>>>>>> d368b42 (docs: add staycloud GCP project ID and submission README fields)
 
 ## Project Description
 
