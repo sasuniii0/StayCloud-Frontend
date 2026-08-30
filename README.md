@@ -2,7 +2,7 @@
 
 > **Student Name:** Sasuni Jinethma Wijerathne
 > **Student Number:** 241711085
-> **Slack Handle:** _[optional]_
+> **Slack Handle:** sasuni wijerathne
 > **GCP Project ID:** `staycloud`
 > **Live URL:** http://34.14.183.114 (also https://staycloud-frontend-5hygiw3kyq-el.a.run.app)
 
